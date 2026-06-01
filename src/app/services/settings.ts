@@ -4,7 +4,6 @@ export interface AppSettings {
   darkMode: boolean;
   notifications: boolean;
   compactMode: boolean;
-  hideValues: boolean;
   language: 'pt-BR';
 }
 
@@ -14,7 +13,6 @@ const defaultSettings: AppSettings = {
   darkMode: false,
   notifications: true,
   compactMode: false,
-  hideValues: false,
   language: 'pt-BR',
 };
 
@@ -42,7 +40,12 @@ function readSettings(): AppSettings {
 
   try {
     const parsed = JSON.parse(saved) as Partial<AppSettings>;
-    const settings = { ...defaultSettings, ...parsed };
+    const settings: AppSettings = {
+      darkMode: parsed.darkMode ?? defaultSettings.darkMode,
+      notifications: parsed.notifications ?? defaultSettings.notifications,
+      compactMode: parsed.compactMode ?? defaultSettings.compactMode,
+      language: 'pt-BR',
+    };
     applySettings(settings);
     return settings;
   } catch {

@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router';
-import { Bell, DatabaseBackup, Download, EyeOff, LogOut, Moon, RotateCcw, Smartphone, User } from 'lucide-react';
+import { Bell, LogOut, Moon, Smartphone, User } from 'lucide-react';
 import { Header } from '../components/Header';
 import { FinButton } from '../components/FinButton';
 import { useDatabase } from '../services/database';
@@ -50,74 +50,17 @@ function ToggleRow({
   );
 }
 
-function ActionButton({
-  icon,
-  title,
-  description,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full bg-card rounded-2xl border border-border p-4 flex items-center gap-4 text-left active:scale-[0.99] transition-all"
-    >
-      <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <h3 className="font-semibold text-foreground leading-tight">{title}</h3>
-        <p className="text-sm text-muted-foreground mt-1 leading-snug">{description}</p>
-      </div>
-    </button>
-  );
-}
-
 export function SettingsScreen() {
   const navigate = useNavigate();
   const user = getCurrentUser();
-  const { clientes, sessoes, transacoes, resetDatabase } = useDatabase();
-  const { settings, updateSetting, resetSettings } = useSettings();
-  const [message, setMessage] = useState('');
+  const { clientes, sessoes, transacoes } = useDatabase();
+  const { settings, updateSetting } = useSettings();
 
   const stats = useMemo(() => [
     { label: 'Clientes', value: clientes.length },
     { label: 'Sessões', value: sessoes.length },
     { label: 'Transações', value: transacoes.length },
   ], [clientes.length, sessoes.length, transacoes.length]);
-
-  const exportData = () => {
-    const data = {
-      exportadoEm: new Date().toISOString(),
-      usuario: user,
-      banco: { clientes, sessoes, transacoes },
-      configuracoes: settings,
-    };
-
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'psifinance-backup.json';
-    link.click();
-    URL.revokeObjectURL(url);
-    setMessage('Backup exportado com sucesso.');
-  };
-
-  const handleResetDemo = () => {
-    resetDatabase();
-    setMessage('Banco restaurado com os dados de apresentação.');
-  };
-
-  const handleResetSettings = () => {
-    resetSettings();
-    setMessage('Preferências restauradas.');
-  };
 
   const handleLogout = () => {
     logout();
@@ -151,12 +94,6 @@ export function SettingsScreen() {
           </div>
         </div>
 
-        {message && (
-          <div className="rounded-2xl border border-success/20 bg-success/10 px-4 py-3 text-sm text-success">
-            {message}
-          </div>
-        )}
-
         <section className="space-y-3">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
             Aparência e uso
@@ -179,46 +116,11 @@ export function SettingsScreen() {
           />
 
           <ToggleRow
-            icon={<EyeOff size={22} />}
-            title="Ocultar valores"
-            description="Opção visual para privacidade durante demonstrações."
-            checked={settings.hideValues}
-            onChange={(value) => updateSetting('hideValues', value)}
-          />
-
-          <ToggleRow
             icon={<Bell size={22} />}
             title="Notificações"
             description="Mantém lembretes de sessões ligados no app."
             checked={settings.notifications}
             onChange={(value) => updateSetting('notifications', value)}
-          />
-        </section>
-
-        <section className="space-y-3">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
-            Dados locais
-          </h3>
-
-          <ActionButton
-            icon={<Download size={22} />}
-            title="Exportar backup"
-            description="Baixa clientes, sessões, transações e preferências em JSON."
-            onClick={exportData}
-          />
-
-          <ActionButton
-            icon={<DatabaseBackup size={22} />}
-            title="Restaurar dados demo"
-            description="Recarrega o banco local de apresentação."
-            onClick={handleResetDemo}
-          />
-
-          <ActionButton
-            icon={<RotateCcw size={22} />}
-            title="Restaurar preferências"
-            description="Volta tema, modo compacto e privacidade ao padrão."
-            onClick={handleResetSettings}
           />
         </section>
 

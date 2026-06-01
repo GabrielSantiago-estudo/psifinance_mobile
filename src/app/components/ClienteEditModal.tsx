@@ -58,8 +58,8 @@ export function ClienteEditModal({ cliente, onClose }: ClienteEditModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 px-4 flex items-end sm:items-center justify-center">
-      <div className="w-full max-w-md bg-background rounded-t-3xl sm:rounded-3xl border border-border p-5 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[80] bg-black/50 px-4 pt-6 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:pb-6 flex items-end sm:items-center justify-center">
+      <div className="w-full max-w-md bg-background rounded-t-3xl sm:rounded-3xl border border-border p-5 space-y-4 shadow-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold text-foreground">Editar cliente</h2>

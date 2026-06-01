@@ -5,15 +5,13 @@ import { BottomNav } from '../components/BottomNav';
 import { Settings, TrendingUp, Users, Calendar, Plus, UserPlus, CalendarPlus, DollarSign } from 'lucide-react';
 import { useDatabase } from '../services/database';
 import { getCurrentUser } from '../services/auth';
-import { useSettings } from '../services/settings';
 import { useNavigate } from 'react-router';
 import { cn } from '../components/ui/utils';
 import { formatDatePtBr, getLocalDateInputValue, getLocalMonthInputValue } from '../utils/dates';
 import { formatCurrency } from '../utils/formatters';
 
 export function DashboardScreen() {
-  const { settings } = useSettings();
-  const [showBalance, setShowBalance] = useState(!settings.hideValues);
+  const [showBalance, setShowBalance] = useState(true);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const navigate = useNavigate();
   const { transacoes: mockTransacoes, clientes: mockClientes, sessoes: mockSessoes } = useDatabase();

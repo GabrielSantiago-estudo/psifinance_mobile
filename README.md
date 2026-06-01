@@ -29,7 +29,7 @@ npm run typecheck
 
 ## Banco local
 
-O app usa `localStorage` como banco de dados local do navegador. Os dados ficam somente na máquina do usuário e podem ser exportados pela tela de configurações.
+O app usa `localStorage` como banco de dados local do navegador. Os dados ficam somente na máquina do usuário.
 
 Chaves principais:
 
