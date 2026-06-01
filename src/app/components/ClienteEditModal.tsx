@@ -3,6 +3,8 @@ import { X } from 'lucide-react';
 import { useDatabase } from '../services/database';
 import { Cliente, StatusCadastro, StatusPagamento } from '../types';
 import { formatBrazilianPhone } from '../utils/formatters';
+import { validateClienteInput } from '../validators/forms';
+import { FeedbackMessage } from './FeedbackMessage';
 import { cn } from './ui/utils';
 
 interface ClienteEditModalProps {
@@ -11,24 +13,48 @@ interface ClienteEditModalProps {
 }
 
 export function ClienteEditModal({ cliente, onClose }: ClienteEditModalProps) {
-  const { updateCliente } = useDatabase();
+  const { clientes, updateCliente } = useDatabase();
   const [nome, setNome] = useState(cliente.nome);
   const [email, setEmail] = useState(cliente.email);
   const [telefone, setTelefone] = useState(cliente.telefone);
   const [statusCadastro, setStatusCadastro] = useState<StatusCadastro>(cliente.statusCadastro);
-  const [statusPagamento, setStatusPagamento] = useState<StatusPagamento>(cliente.statusPagamento);
+  const [statusPagamento, setStatusPagamento] = useState<StatusPagamento>(
+    cliente.statusPagamento === 'Em dia'
+      ? 'Pago'
+      : cliente.statusPagamento === 'Inadimplente'
+        ? 'Pendente'
+        : cliente.statusPagamento
+  );
   const [observacoes, setObservacoes] = useState(cliente.observacoes ?? '');
+  const [errors, setErrors] = useState<string[]>([]);
+  const [message, setMessage] = useState('');
 
   function save() {
-    updateCliente(cliente.id, {
+    const validationErrors = validateClienteInput({
       nome,
       email,
       telefone,
+      clientes,
+      currentId: cliente.id,
+    });
+
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      setMessage('');
+      return;
+    }
+
+    updateCliente(cliente.id, {
+      nome: nome.trim(),
+      email: email.trim(),
+      telefone,
       statusCadastro,
       statusPagamento,
-      observacoes: observacoes || undefined,
+      observacoes: observacoes.trim() || undefined,
     });
-    onClose();
+    setErrors([]);
+    setMessage('Cliente atualizado com sucesso.');
+    window.setTimeout(onClose, 700);
   }
 
   return (
@@ -47,6 +73,16 @@ export function ClienteEditModal({ cliente, onClose }: ClienteEditModalProps) {
         <input value={nome} onChange={(event) => setNome(event.target.value)} className="w-full rounded-2xl bg-card border border-border px-4 py-3 text-foreground" placeholder="Nome completo" />
         <input value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-2xl bg-card border border-border px-4 py-3 text-foreground" placeholder="Email" />
         <input value={telefone} inputMode="numeric" maxLength={19} onChange={(event) => setTelefone(formatBrazilianPhone(event.target.value))} className="w-full rounded-2xl bg-card border border-border px-4 py-3 text-foreground" placeholder="Telefone" />
+
+        {errors.length > 0 && (
+          <FeedbackMessage type="error">
+            {errors.map((error) => (
+              <p key={error}>{error}</p>
+            ))}
+          </FeedbackMessage>
+        )}
+
+        {message && <FeedbackMessage type="success">{message}</FeedbackMessage>}
 
         <div className="space-y-2">
           <p className="text-sm font-medium text-foreground">Status do cliente</p>
@@ -69,8 +105,8 @@ export function ClienteEditModal({ cliente, onClose }: ClienteEditModalProps) {
 
         <div className="space-y-2">
           <p className="text-sm font-medium text-foreground">Status de pagamento</p>
-          <div className="grid grid-cols-3 gap-2">
-            {(['Em dia', 'Pendente', 'Inadimplente'] as StatusPagamento[]).map((status) => (
+          <div className="grid grid-cols-2 gap-2">
+            {(['Pendente', 'Pago', 'Isento', 'Estornado'] as StatusPagamento[]).map((status) => (
               <button
                 key={status}
                 type="button"

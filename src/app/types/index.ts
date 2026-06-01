@@ -1,9 +1,11 @@
 // Tipos de dados para o sistema de gestão de consultas
 
 export type StatusCadastro = 'Ativo' | 'Inativo';
-export type StatusPagamento = 'Em dia' | 'Pendente' | 'Inadimplente';
+// "Em dia" e "Inadimplente" ficam apenas para migrar dados antigos.
+export type StatusPagamento = 'Pendente' | 'Pago' | 'Isento' | 'Estornado' | 'Em dia' | 'Inadimplente';
 export type StatusSessao = 'Agendada' | 'Realizada' | 'Cancelada' | 'Faltou';
 export type TipoConsulta = 'Avaliação' | 'Sessão Avulsa' | 'Pacote Mensal' | 'Pacote Trimestral' | 'Retorno';
+export type OrigemTransacao = 'Manual' | 'SessaoAutomatica';
 
 export interface Cliente {
   id: string;
@@ -25,6 +27,7 @@ export interface Sessao {
   duracao: number;
   tipoConsulta: TipoConsulta;
   status: StatusSessao;
+  statusPagamento?: StatusPagamento;
   observacoes?: string;
   valorCobrado?: number;
   financeiroGerado?: boolean;
@@ -41,6 +44,7 @@ export interface Transacao {
   clienteId?: string;
   clienteNome?: string;
   sessaoId?: string;
+  origem?: OrigemTransacao;
   recorrente?: boolean;
   frequencia?: 'Mensal' | 'Trimestral' | 'Anual';
 }
@@ -48,6 +52,6 @@ export interface Transacao {
 export interface ValorConsulta {
   tipo: TipoConsulta;
   valor: number;
-  sessoes?: number; // para pacotes
-  validade?: number; // dias de validade
+  sessoes?: number;
+  validade?: number;
 }

@@ -10,6 +10,8 @@ import { useDatabase } from '../services/database';
 import { TipoConsulta } from '../types';
 import { ClienteSelect } from '../components/ClienteSelect';
 import { getLocalDateInputValue } from '../utils/dates';
+import { validateSessaoInput } from '../validators/forms';
+import { FeedbackMessage } from '../components/FeedbackMessage';
 
 export function NovaSessaoScreen() {
   const navigate = useNavigate();
@@ -21,47 +23,75 @@ export function NovaSessaoScreen() {
   const [tipoConsulta, setTipoConsulta] = useState<TipoConsulta>('Sessão Avulsa');
   const [observacoes, setObservacoes] = useState('');
   const [cobrarAgora, setCobrarAgora] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
+
+  const valorConsulta = valoresConsultas.find(v => v.tipo === tipoConsulta);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const duracaoNumerica = Number(duracao);
+    const valorCobrado = valorConsulta?.valor ?? 0;
+    const statusInicial = cobrarAgora ? 'Realizada' : 'Agendada';
+    const validationErrors = validateSessaoInput({
+      clienteId,
+      data,
+      hora,
+      duracao: duracaoNumerica,
+      valorCobrado,
+      status: statusInicial,
+      tipoConsulta,
+    });
+
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
     const cliente = mockClientes.find((item) => item.id === clienteId);
     const sessao = addSessao({
       clienteId,
       data,
       hora,
-      duracao: Number(duracao),
+      duracao: duracaoNumerica,
       tipoConsulta,
-      status: 'Agendada',
-      observacoes: observacoes || undefined,
-      valorCobrado: valorConsulta?.valor ?? 0,
-      financeiroGerado: cobrarAgora && Boolean(valorConsulta),
+      status: statusInicial,
+      statusPagamento: cobrarAgora ? 'Pago' : valorCobrado === 0 ? 'Isento' : 'Pendente',
+      observacoes: observacoes.trim() || undefined,
+      valorCobrado,
+      financeiroGerado: cobrarAgora && valorCobrado > 0,
     });
 
-    if (cobrarAgora && valorConsulta) {
+    if (cobrarAgora && valorConsulta && valorCobrado > 0) {
       addTransacao({
         tipo: 'Receita',
         categoria: 'Consultas',
         tipoConsulta,
         descricao: `Consulta - ${cliente?.nome ?? 'Cliente'}`,
-        valor: valorConsulta.valor,
+        valor: valorCobrado,
         data,
         clienteId,
         clienteNome: cliente?.nome,
         sessaoId: sessao.id,
+        origem: 'SessaoAutomatica',
       });
     }
 
     navigate('/sessoes');
   };
-
-  const valorConsulta = valoresConsultas.find(v => v.tipo === tipoConsulta);
-
   return (
     <div className="min-h-screen bg-background pb-6">
       <Header title="Nova Sessão" showBack />
 
       <div className="max-w-md mx-auto px-4 py-6">
         <form onSubmit={handleSubmit} className="space-y-6">
+          {errors.length > 0 && (
+            <FeedbackMessage type="error">
+              {errors.map((error) => (
+                <p key={error}>{error}</p>
+              ))}
+            </FeedbackMessage>
+          )}
+
           {/* Cliente */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-foreground">Cliente</label>
@@ -75,7 +105,7 @@ export function NovaSessaoScreen() {
           <div className="rounded-2xl bg-primary/10 border border-primary/20 p-4">
             <p className="text-sm font-medium text-primary">Status inicial automático</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Novas sessões entram como <strong>Agendada</strong>. Depois, use editar para marcar realizada, cancelada ou falta.
+              Novas sessões entram como <strong>Agendada</strong>. Ao marcar como realizada, a receita é gerada automaticamente.
             </p>
           </div>
 
@@ -90,9 +120,9 @@ export function NovaSessaoScreen() {
               <Receipt size={19} />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground">Cobrar agora</p>
+              <p className="text-sm font-semibold text-foreground">Registrar como realizada e paga</p>
               <p className="text-xs text-muted-foreground">
-                Gera uma receita de R$ {valorConsulta?.valor ?? 0} vinculada a esta sessão.
+                Cria a sessão como realizada e gera uma receita vinculada.
               </p>
             </div>
           </label>

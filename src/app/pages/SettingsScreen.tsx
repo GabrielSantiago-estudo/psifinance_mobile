@@ -121,7 +121,7 @@ export function SettingsScreen() {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -228,8 +228,8 @@ export function SettingsScreen() {
           className="w-full min-h-[56px] bg-destructive text-white hover:bg-destructive/90 shadow-none hover:shadow-none"
           onClick={handleLogout}
         >
-          <LogOut size={20} />
-          Sair da conta
+          <LogOut size={20} className="shrink-0" />
+          <span className="leading-none">Sair da conta</span>
         </FinButton>
       </div>
     </div>

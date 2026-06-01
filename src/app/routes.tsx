@@ -1,4 +1,5 @@
-import { createBrowserRouter } from 'react-router';
+import React from 'react';
+import { createBrowserRouter, Navigate } from 'react-router';
 import { LoginScreen } from './pages/LoginScreen';
 import { RegisterScreen } from './pages/RegisterScreen';
 import { DashboardScreen } from './pages/DashboardScreen';
@@ -12,62 +13,95 @@ import { NovoClienteScreen } from './pages/NovoClienteScreen';
 import { SessoesScreen } from './pages/SessoesScreen';
 import { NovaSessaoScreen } from './pages/NovaSessaoScreen';
 import { SettingsScreen } from './pages/SettingsScreen';
+import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
+
+function protectedElement(element: React.ReactElement) {
+  return <ProtectedRoute>{element}</ProtectedRoute>;
+}
+
+function publicElement(element: React.ReactElement) {
+  return <PublicOnlyRoute>{element}</PublicOnlyRoute>;
+}
 
 export const router = createBrowserRouter([
   {
     path: '/',
-    Component: LoginScreen,
+    element: <Navigate to="/login" replace />,
   },
   {
-    path: '/register',
-    Component: RegisterScreen,
+    path: '/login',
+    element: publicElement(<LoginScreen />),
+  },
+  {
+    path: '/cadastro',
+    element: publicElement(<RegisterScreen />),
   },
   {
     path: '/dashboard',
-    Component: DashboardScreen,
+    element: protectedElement(<DashboardScreen />),
   },
   {
     path: '/clientes',
-    Component: ClientesScreen,
+    element: protectedElement(<ClientesScreen />),
   },
   {
     path: '/clientes/novo',
-    Component: NovoClienteScreen,
+    element: protectedElement(<NovoClienteScreen />),
   },
   {
     path: '/clientes/:id',
-    Component: ClienteDetalhesScreen,
+    element: protectedElement(<ClienteDetalhesScreen />),
   },
   {
     path: '/sessoes',
-    Component: SessoesScreen,
+    element: protectedElement(<SessoesScreen />),
   },
   {
     path: '/sessoes/nova',
-    Component: NovaSessaoScreen,
+    element: protectedElement(<NovaSessaoScreen />),
   },
   {
-    path: '/transactions',
-    Component: TransactionsScreen,
+    path: '/transacoes',
+    element: protectedElement(<TransactionsScreen />),
   },
   {
     path: '/transacoes/nova',
-    Component: AddTransactionScreen,
+    element: protectedElement(<AddTransactionScreen />),
   },
   {
-    path: '/add-transaction',
-    Component: AddTransactionScreen,
+    path: '/relatorios',
+    element: protectedElement(<ReportsScreen />),
   },
   {
-    path: '/reports',
-    Component: ReportsScreen,
-  },
-  {
-    path: '/settings',
-    Component: SettingsScreen,
+    path: '/configuracoes',
+    element: protectedElement(<SettingsScreen />),
   },
   {
     path: '/showcase',
-    Component: ComponentShowcase,
+    element: protectedElement(<ComponentShowcase />),
+  },
+  {
+    path: '/register',
+    element: <Navigate to="/cadastro" replace />,
+  },
+  {
+    path: '/transactions',
+    element: <Navigate to="/transacoes" replace />,
+  },
+  {
+    path: '/add-transaction',
+    element: <Navigate to="/transacoes/nova" replace />,
+  },
+  {
+    path: '/reports',
+    element: <Navigate to="/relatorios" replace />,
+  },
+  {
+    path: '/settings',
+    element: <Navigate to="/configuracoes" replace />,
+  },
+  {
+    path: '*',
+    element: <Navigate to="/dashboard" replace />,
   },
 ]);

@@ -7,6 +7,7 @@ import { cn } from '../components/ui/utils';
 import { useDatabase } from '../services/database';
 import { Transacao } from '../types';
 import { getLocalMonthInputValue, getMonthLabel, parseMonthInput } from '../utils/dates';
+import { formatCurrency } from '../utils/formatters';
 
 // Preparar dados para os gráficos
 const getCategoriaData = (transacoes: Transacao[]) => {
@@ -94,13 +95,27 @@ export function ReportsScreen() {
   const sessoesMes = mockSessoes.filter(s => s.data.startsWith(monthFilter));
   const sessoesRealizadas = sessoesMes.filter(s => s.status === 'Realizada').length;
   const sessoesAgendadas = sessoesMes.filter(s => s.status === 'Agendada').length;
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(amount);
-  };
+  const sessoesCanceladas = sessoesMes.filter(s => s.status === 'Cancelada').length;
+  const sessoesFaltas = sessoesMes.filter(s => s.status === 'Faltou').length;
+  const taxaComparecimento = sessoesMes.length > 0
+    ? Math.round((sessoesRealizadas / sessoesMes.length) * 100)
+    : 0;
+  const pendenciasSessao = sessoesMes.filter((sessao) =>
+    sessao.status === 'Realizada'
+    && (sessao.statusPagamento ?? (sessao.valorCobrado === 0 ? 'Isento' : 'Pendente')) === 'Pendente'
+  );
+  const valorPendente = pendenciasSessao.reduce((sum, sessao) => sum + (sessao.valorCobrado ?? 0), 0);
+  const topClientes = Object.entries(
+    transacoesMes
+      .filter((transacao) => transacao.tipo === 'Receita' && transacao.clienteNome)
+      .reduce((acc, transacao) => {
+        const nome = transacao.clienteNome as string;
+        acc[nome] = (acc[nome] ?? 0) + transacao.valor;
+        return acc;
+      }, {} as Record<string, number>)
+  )
+    .sort(([, valueA], [, valueB]) => valueB - valueA)
+    .slice(0, 3);
 
   const consultasData = getConsultasData(transacoesMes);
   const despesasData = getCategoriaData(transacoesMes);
@@ -157,6 +172,40 @@ export function ReportsScreen() {
             <p className="text-xs text-muted-foreground">Agendadas</p>
           </div>
         </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-card rounded-2xl p-4 border border-border">
+            <p className="text-2xl font-bold text-primary">{taxaComparecimento}%</p>
+            <p className="text-xs text-muted-foreground">Comparecimento</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {sessoesCanceladas} cancelada{sessoesCanceladas === 1 ? '' : 's'} - {sessoesFaltas} falta{sessoesFaltas === 1 ? '' : 's'}
+            </p>
+          </div>
+          <div className="bg-card rounded-2xl p-4 border border-border">
+            <p className="text-2xl font-bold text-warning">{formatCurrency(valorPendente)}</p>
+            <p className="text-xs text-muted-foreground">A receber</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {pendenciasSessao.length === 1 ? '1 sessão' : `${pendenciasSessao.length} sessões`} pendente{pendenciasSessao.length === 1 ? '' : 's'}
+            </p>
+          </div>
+        </div>
+
+        {topClientes.length > 0 && (
+          <div className="bg-card rounded-3xl p-5 border border-border space-y-3">
+            <h4 className="text-base font-semibold text-foreground">Clientes com maior receita</h4>
+            {topClientes.map(([nome, valor], index) => (
+              <div key={nome} className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="w-7 h-7 rounded-xl bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
+                    {index + 1}
+                  </span>
+                  <span className="text-sm text-foreground truncate">{nome}</span>
+                </div>
+                <span className="text-sm font-semibold text-success shrink-0">{formatCurrency(valor)}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Seletor de Gráfico */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">

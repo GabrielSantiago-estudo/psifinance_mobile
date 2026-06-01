@@ -1,5 +1,9 @@
 export function formatBrazilianPhone(value: string) {
-  const digits = value.replace(/\D/g, '').slice(0, 13);
+  let digits = value.replace(/\D/g, '');
+  if (digits.length > 0 && !digits.startsWith('55')) {
+    digits = `55${digits}`;
+  }
+  digits = digits.slice(0, 13);
 
   const country = digits.slice(0, 2);
   const area = digits.slice(2, 4);
@@ -14,4 +18,11 @@ export function formatBrazilianPhone(value: string) {
   if (second) formatted += `-${second}`;
 
   return formatted;
+}
+
+export function formatCurrency(amount: number) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(amount);
 }

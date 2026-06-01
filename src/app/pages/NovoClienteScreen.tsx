@@ -6,25 +6,34 @@ import { FinInput } from '../components/FinInput';
 import { User, Mail, Phone, FileText } from 'lucide-react';
 import { useDatabase } from '../services/database';
 import { formatBrazilianPhone } from '../utils/formatters';
+import { validateClienteInput } from '../validators/forms';
+import { FeedbackMessage } from '../components/FeedbackMessage';
 
 export function NovoClienteScreen() {
   const navigate = useNavigate();
-  const { addCliente } = useDatabase();
+  const { clientes, addCliente } = useDatabase();
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
   const [observacoes, setObservacoes] = useState('');
+  const [errors, setErrors] = useState<string[]>([]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const validationErrors = validateClienteInput({ nome, email, telefone, clientes });
+
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
 
     addCliente({
-      nome,
-      email,
+      nome: nome.trim(),
+      email: email.trim(),
       telefone,
       statusCadastro: 'Ativo',
-      statusPagamento: 'Pendente',
-      observacoes: observacoes || undefined,
+      statusPagamento: 'Pago',
+      observacoes: observacoes.trim() || undefined,
     });
 
     navigate('/clientes');
@@ -36,6 +45,14 @@ export function NovoClienteScreen() {
 
       <div className="max-w-md mx-auto px-4 py-6">
         <form onSubmit={handleSubmit} className="space-y-6">
+          {errors.length > 0 && (
+            <FeedbackMessage type="error">
+              {errors.map((error) => (
+                <p key={error}>{error}</p>
+              ))}
+            </FeedbackMessage>
+          )}
+
           <FinInput
             label="Nome Completo"
             type="text"
@@ -53,7 +70,6 @@ export function NovoClienteScreen() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             icon={<Mail size={20} />}
-            required
           />
 
           <FinInput

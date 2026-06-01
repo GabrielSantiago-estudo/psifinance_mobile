@@ -1,15 +1,13 @@
 # PsiFinance Mobile
 
-Projeto React + Vite em TypeScript para controle simples de clientes, sessões e finanças.
+Aplicativo mobile-first em React + Vite para gestão local de clientes, sessões e finanças de um consultório.
 
-## O que foi implementado
+## Acesso de apresentação
 
-- Banco de dados local dentro do próprio front-end usando `localStorage`.
-- Cadastro funcional de clientes.
-- Cadastro funcional de sessões.
-- Cadastro funcional de transações.
-- Dashboard, relatórios, clientes, sessões e transações alimentados pelos dados salvos.
-- Dados iniciais continuam vindo do protótipo para a aplicação não abrir vazia.
+- E-mail: `admin@admin`
+- Senha: `admin`
+
+A autenticação é local e simulada, pensada apenas para demonstração acadêmica.
 
 ## Como rodar
 
@@ -18,27 +16,53 @@ npm install
 npm run dev
 ```
 
-Depois abra o endereço mostrado no terminal.
+Depois abra o endereço exibido pelo Vite.
 
-## Como testar
+## Scripts
 
-1. Entre no app.
-2. Cadastre um novo cliente.
-3. Cadastre uma nova sessão.
-4. Marque "cobrar agora" para gerar receita automaticamente.
-5. Cadastre receitas/despesas.
-6. Veja os dados atualizando no dashboard, relatórios e listas.
+```bash
+npm run dev
+npm run build
+npm run preview
+npm run typecheck
+```
 
-## Observação
+## Banco local
 
-Este projeto usa banco local do navegador. Para um projeto simples de faculdade, isso evita precisar configurar servidor, hospedagem de banco ou autenticação real. Para zerar os dados, limpe o armazenamento local do navegador ou use a função `resetDatabase` em `src/app/services/database.ts`.
+O app usa `localStorage` como banco de dados local do navegador. Os dados ficam somente na máquina do usuário e podem ser exportados pela tela de configurações.
 
+Chaves principais:
 
-## Acesso de apresentação
+- `psifinance_auth_user_v1`: sessão local do usuário.
+- `psifinance_db_v3`: clientes, sessões e transações.
+- `psifinance_settings_v1`: preferências de interface.
 
-Use o login abaixo para abrir o projeto já alimentado:
+O serviço de dados mantém compatibilidade com chaves antigas e normaliza registros legados ao abrir o app.
 
-- E-mail: `admin@admin`
-- Senha: `admin`
+## Fluxo financeiro
 
-O banco local usa `localStorage` e já inicia com 20 clientes, sessões, transações e relatórios prontos para demonstração. A tela de configurações permite alternar modo escuro, modo compacto, notificações, ocultar valores, exportar backup, restaurar dados demo e sair da conta.
+- Clientes têm status de cadastro separado: `Ativo` ou `Inativo`.
+- Status de pagamento fica explícito como `Pendente`, `Pago`, `Isento` ou `Estornado`.
+- Sessões novas entram como `Agendada`.
+- Ao marcar uma sessão como `Realizada` com valor cobrado maior que zero, o app gera ou atualiza automaticamente uma receita vinculada.
+- Se a sessão deixa de ser realizada, a receita automática vinculada é removida.
+
+## Rotas principais
+
+- `/login`
+- `/cadastro`
+- `/dashboard`
+- `/clientes`
+- `/clientes/novo`
+- `/sessoes`
+- `/sessoes/nova`
+- `/transacoes`
+- `/transacoes/nova`
+- `/relatorios`
+- `/configuracoes`
+
+Rotas antigas em inglês continuam redirecionando para preservar links anteriores.
+
+## Validações
+
+Os formulários validam campos obrigatórios, telefone brasileiro no formato `+55 (##) #####-####`, e-mail quando preenchido, valor financeiro maior que zero e duplicidade de clientes por e-mail ou telefone.

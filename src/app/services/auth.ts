@@ -31,6 +31,22 @@ export function login(email: string, password: string): AuthUser | null {
   return null;
 }
 
+// Autenticação local e simulada, usada apenas para fins acadêmicos.
+export function registerLocalUser(nome: string, email: string): AuthUser {
+  const user: AuthUser = {
+    id: `user_${Date.now()}`,
+    nome: nome.trim() || 'Usuário',
+    email: email.trim().toLowerCase(),
+    role: 'user',
+  };
+
+  if (isBrowser()) {
+    window.localStorage.setItem(AUTH_KEY, JSON.stringify(user));
+  }
+
+  return user;
+}
+
 export function logout() {
   if (isBrowser()) {
     window.localStorage.removeItem(AUTH_KEY);

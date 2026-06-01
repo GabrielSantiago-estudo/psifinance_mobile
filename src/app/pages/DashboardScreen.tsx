@@ -9,6 +9,7 @@ import { useSettings } from '../services/settings';
 import { useNavigate } from 'react-router';
 import { cn } from '../components/ui/utils';
 import { formatDatePtBr, getLocalDateInputValue, getLocalMonthInputValue } from '../utils/dates';
+import { formatCurrency } from '../utils/formatters';
 
 export function DashboardScreen() {
   const { settings } = useSettings();
@@ -33,15 +34,24 @@ export function DashboardScreen() {
     .filter(t => t.tipo === 'Receita' && t.data.startsWith(currentMonthKey))
     .reduce((sum, t) => sum + t.valor, 0);
 
+  const despesasDoMes = mockTransacoes
+    .filter(t => t.tipo === 'Despesa' && t.data.startsWith(currentMonthKey))
+    .reduce((sum, t) => sum + t.valor, 0);
+
   // Estatísticas de clientes
   const clientesAtivos = mockClientes.filter(c => c.statusCadastro === 'Ativo').length;
-  const clientesInadimplentes = mockClientes.filter(c => c.statusPagamento === 'Inadimplente').length;
+  const clientesComPendencia = mockClientes.filter(c => c.statusPagamento === 'Pendente' || c.statusPagamento === 'Inadimplente').length;
   
   // Sessões do mês
   const sessoesDoMes = mockSessoes.filter(s => s.data.startsWith(currentMonthKey));
   
   const sessoesRealizadas = sessoesDoMes.filter(s => s.status === 'Realizada').length;
   const sessoesAgendadas = mockSessoes.filter(s => s.status === 'Agendada').length;
+  const pendenciasSessoes = mockSessoes.filter((sessao) =>
+    sessao.status === 'Realizada'
+    && (sessao.statusPagamento ?? (sessao.valorCobrado === 0 ? 'Isento' : 'Pendente')) === 'Pendente'
+  );
+  const valorPendente = pendenciasSessoes.reduce((sum, sessao) => sum + (sessao.valorCobrado ?? 0), 0);
 
   // Próximas sessões
   const hoje = getLocalDateInputValue();
@@ -69,7 +79,7 @@ export function DashboardScreen() {
             <p className="text-sm text-muted-foreground">Bem-vindo,</p>
             <h2 className="text-xl font-semibold text-foreground">{currentUser?.nome ?? 'Administrador'}</h2>
           </div>
-          <button onClick={() => navigate('/settings')} className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors">
+          <button onClick={() => navigate('/configuracoes')} className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors">
             <Settings size={20} className="text-foreground" />
           </button>
         </div>
@@ -85,8 +95,8 @@ export function DashboardScreen() {
 
         {/* Receitas/Despesas */}
         <div className="grid grid-cols-2 gap-4">
-          <SummaryCard type="income" amount={totalReceitas} />
-          <SummaryCard type="expense" amount={totalDespesas} />
+          <SummaryCard type="income" amount={receitasDoMes} label="Receitas do mês" />
+          <SummaryCard type="expense" amount={despesasDoMes} label="Despesas do mês" />
         </div>
 
         {/* Cards de Estatísticas Rápidas */}
@@ -102,9 +112,9 @@ export function DashboardScreen() {
             </div>
             <p className="text-2xl font-bold text-foreground">{clientesAtivos}</p>
             <p className="text-sm text-muted-foreground">Clientes Ativos</p>
-            {clientesInadimplentes > 0 && (
+            {clientesComPendencia > 0 && (
               <p className="text-xs text-destructive mt-1">
-                {clientesInadimplentes} inadimplente{clientesInadimplentes > 1 ? 's' : ''}
+                {clientesComPendencia} com pendência
               </p>
             )}
           </div>
@@ -126,19 +136,16 @@ export function DashboardScreen() {
           </div>
         </div>
 
-        {/* Receitas do Mês */}
-        <div className="bg-gradient-to-br from-success/10 to-success/5 rounded-2xl p-4 border border-success/20">
+        <div className="bg-gradient-to-br from-warning/10 to-warning/5 rounded-2xl p-4 border border-warning/20">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
-              <TrendingUp size={20} className="text-success" />
+            <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
+              <TrendingUp size={20} className="text-warning" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Receitas do Mês</p>
-              <p className="text-2xl font-bold text-success">
-                {new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                }).format(receitasDoMes)}
+              <p className="text-sm text-muted-foreground">Sessões realizadas pendentes</p>
+              <p className="text-2xl font-bold text-warning">{formatCurrency(valorPendente)}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {pendenciasSessoes.length === 1 ? '1 sessão' : `${pendenciasSessoes.length} sessões`} aguardando pagamento
               </p>
             </div>
           </div>

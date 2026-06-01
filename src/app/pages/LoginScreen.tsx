@@ -21,7 +21,7 @@ export function LoginScreen() {
       return;
     }
 
-    navigate('/dashboard');
+    navigate('/dashboard', { replace: true });
   };
 
   return (
@@ -34,9 +34,9 @@ export function LoginScreen() {
               <Activity size={40} className="text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Gestão de Consultas</h1>
+              <h1 className="text-3xl font-bold text-foreground">PsiFinance</h1>
               <p className="text-muted-foreground mt-2">
-                Gerencie seu consultório com facilidade
+                Gestão financeira mobile para consultórios
               </p>
             </div>
           </div>
@@ -81,7 +81,7 @@ export function LoginScreen() {
             <p className="text-muted-foreground">
               Não tem uma conta?{' '}
               <button
-                onClick={() => navigate('/register')}
+                onClick={() => navigate('/cadastro')}
                 className="text-primary font-medium hover:underline"
               >
                 Cadastre-se

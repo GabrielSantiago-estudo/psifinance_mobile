@@ -9,6 +9,8 @@ import { valoresConsultas } from '../data/mockData';
 import { useDatabase } from '../services/database';
 import { TipoConsulta } from '../types';
 import { getLocalDateInputValue } from '../utils/dates';
+import { validateTransacaoInput } from '../validators/forms';
+import { FeedbackMessage } from '../components/FeedbackMessage';
 
 const categoriasReceita = ['Consultas', 'Outras Receitas'];
 const categoriasDespesa = ['Infraestrutura', 'Operacional', 'Marketing', 'Impostos', 'Outras'];
@@ -25,23 +27,46 @@ export function AddTransactionScreen() {
   const [data, setData] = useState(getLocalDateInputValue());
   const [recorrente, setRecorrente] = useState(false);
   const [frequencia, setFrequencia] = useState<'Mensal' | 'Trimestral' | 'Anual'>('Mensal');
+  const [errors, setErrors] = useState<string[]>([]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const valorNumerico = Number(valor);
+    const validationErrors = validateTransacaoInput({
+      tipo,
+      categoria,
+      descricao,
+      valor: valorNumerico,
+      data,
+    });
+
+    if (mostrarTipoConsulta && !tipoConsulta) {
+      validationErrors.push('Selecione o tipo de consulta.');
+    }
+
+    if (mostrarTipoConsulta && !clienteId) {
+      validationErrors.push('Selecione o cliente da consulta.');
+    }
+
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
     const cliente = mockClientes.find((item) => item.id === clienteId);
     addTransacao({
       tipo,
       categoria,
       tipoConsulta: tipoConsulta || undefined,
-      descricao,
-      valor: Number(valor),
+      descricao: descricao.trim(),
+      valor: valorNumerico,
       data,
       clienteId: clienteId || undefined,
       clienteNome: cliente?.nome,
       recorrente,
       frequencia: recorrente ? frequencia : undefined,
     });
-    navigate('/transactions');
+    navigate('/transacoes');
   };
 
   // Quando categoria é "Consultas", preencher automaticamente o valor baseado no tipo
@@ -62,6 +87,14 @@ export function AddTransactionScreen() {
 
       <div className="max-w-md mx-auto px-4 py-6">
         <form onSubmit={handleSubmit} className="space-y-6">
+          {errors.length > 0 && (
+            <FeedbackMessage type="error">
+              {errors.map((error) => (
+                <p key={error}>{error}</p>
+              ))}
+            </FeedbackMessage>
+          )}
+
           {/* Tipo Toggle */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-foreground">

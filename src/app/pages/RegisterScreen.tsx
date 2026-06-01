@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router';
 import { Mail, Lock, User, Activity } from 'lucide-react';
 import { FinButton } from '../components/FinButton';
 import { FinInput } from '../components/FinInput';
+import { registerLocalUser } from '../services/auth';
+import { isValidEmail } from '../validators/forms';
+import { FeedbackMessage } from '../components/FeedbackMessage';
 
 export function RegisterScreen() {
   const navigate = useNavigate();
@@ -10,15 +13,26 @@ export function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [errors, setErrors] = useState<string[]>([]);
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
+    const validationErrors: string[] = [];
+
+    if (!name.trim()) validationErrors.push('Informe seu nome.');
+    if (!email.trim() || !isValidEmail(email)) validationErrors.push('Informe um e-mail válido.');
+    if (password.length < 4) validationErrors.push('Use uma senha com pelo menos 4 caracteres.');
     if (password !== confirmPassword) {
-      alert('As senhas não coincidem');
+      validationErrors.push('As senhas não coincidem.');
+    }
+
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
       return;
     }
-    // Mock registration - in real app, this would create account
-    navigate('/dashboard');
+
+    registerLocalUser(name, email);
+    navigate('/dashboard', { replace: true });
   };
 
   return (
@@ -40,6 +54,14 @@ export function RegisterScreen() {
 
           {/* Register Form */}
           <form onSubmit={handleRegister} className="space-y-4">
+            {errors.length > 0 && (
+              <FeedbackMessage type="error">
+                {errors.map((error) => (
+                  <p key={error}>{error}</p>
+                ))}
+              </FeedbackMessage>
+            )}
+
             <FinInput
               type="text"
               placeholder="Nome completo"
@@ -86,7 +108,7 @@ export function RegisterScreen() {
             <p className="text-muted-foreground">
               Já tem uma conta?{' '}
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/login')}
                 className="text-primary font-medium hover:underline"
               >
                 Entrar

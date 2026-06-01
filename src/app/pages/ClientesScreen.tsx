@@ -41,8 +41,11 @@ export function ClientesScreen() {
 
   const getStatusPagamentoBadge = (status: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
+      'Pago': 'default',
       'Em dia': 'default',
       'Pendente': 'secondary',
+      'Isento': 'secondary',
+      'Estornado': 'destructive',
       'Inadimplente': 'destructive',
     };
     return variants[status] || 'default';

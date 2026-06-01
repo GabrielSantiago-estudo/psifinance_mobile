@@ -16,8 +16,8 @@ import { Mail, User, Search } from 'lucide-react';
 
 const mockTransaction: Transaction = {
   id: '1',
-  title: 'Grocery Shopping',
-  category: 'Food & Dining',
+  title: 'Aluguel da sala',
+  category: 'Infraestrutura',
   amount: -120.50,
   type: 'expense',
   date: '2026-04-06',
@@ -79,7 +79,7 @@ export function ComponentShowcase() {
           />
           <FinInput
             label="Search"
-            placeholder="Search transactions..."
+            placeholder="Buscar transações..."
             icon={<Search size={20} />}
           />
           <FinInput
