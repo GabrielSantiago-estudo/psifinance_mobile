@@ -14,9 +14,9 @@ export function TransactionsScreen() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const navigate = useNavigate();
-  const { transacoes: mockTransacoes } = useDatabase();
+  const { transacoes } = useDatabase();
   
-  const filteredTransacoes = mockTransacoes.filter((transacao) => {
+  const filteredTransacoes = transacoes.filter((transacao) => {
     const matchesType = filter === 'all' || transacao.tipo === filter;
     const matchesSearch = `${transacao.descricao} ${transacao.categoria} ${transacao.clienteNome ?? ''}`
       .toLowerCase()
@@ -50,14 +50,14 @@ export function TransactionsScreen() {
     }
     acc[categoria].push(transacao);
     return acc;
-  }, {} as Record<string, typeof mockTransacoes>);
+  }, {} as Record<string, typeof transacoes>);
 
   // Calcular totais
-  const totalReceitas = mockTransacoes
+  const totalReceitas = transacoes
     .filter(t => t.tipo === 'Receita')
     .reduce((sum, t) => sum + t.valor, 0);
   
-  const totalDespesas = mockTransacoes
+  const totalDespesas = transacoes
     .filter(t => t.tipo === 'Despesa')
     .reduce((sum, t) => sum + t.valor, 0);
 

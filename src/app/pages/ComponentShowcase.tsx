@@ -6,6 +6,7 @@ import { SummaryCard } from '../components/SummaryCard';
 import { TransactionCard, Transaction } from '../components/TransactionCard';
 import { Header } from '../components/Header';
 import { Mail, User, Search } from 'lucide-react';
+import { useDatabase } from '../services/database';
 
 /**
  * Component Showcase - Design System Reference
@@ -14,18 +15,20 @@ import { Mail, User, Search } from 'lucide-react';
  * Use this as a reference for component usage and styling.
  */
 
-const mockTransaction: Transaction = {
-  id: '1',
-  title: 'Aluguel da sala',
-  category: 'Infraestrutura',
-  amount: -120.50,
-  type: 'expense',
-  date: '2026-04-06',
-};
-
 export function ComponentShowcase() {
   const [showBalance, setShowBalance] = useState(true);
   const [inputValue, setInputValue] = useState('');
+  const { transacoes } = useDatabase();
+  const transaction = transacoes[0]
+    ? {
+        id: transacoes[0].id,
+        title: transacoes[0].descricao,
+        category: transacoes[0].categoria,
+        amount: transacoes[0].tipo === 'Receita' ? transacoes[0].valor : -transacoes[0].valor,
+        type: transacoes[0].tipo === 'Receita' ? 'income' : 'expense',
+        date: transacoes[0].data,
+      } satisfies Transaction
+    : null;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -105,7 +108,7 @@ export function ComponentShowcase() {
               <SummaryCard type="expense" amount={4300} />
             </div>
             
-            <TransactionCard transaction={mockTransaction} />
+            {transaction && <TransactionCard transaction={transaction} />}
           </div>
         </section>
 

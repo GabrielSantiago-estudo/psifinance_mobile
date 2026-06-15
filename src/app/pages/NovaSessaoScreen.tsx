@@ -5,7 +5,6 @@ import { FinButton } from '../components/FinButton';
 import { FinInput } from '../components/FinInput';
 import { Calendar, Clock, FileText, Receipt } from 'lucide-react';
 import { cn } from '../components/ui/utils';
-import { valoresConsultas } from '../data/mockData';
 import { useDatabase } from '../services/database';
 import { TipoConsulta } from '../types';
 import { ClienteSelect } from '../components/ClienteSelect';
@@ -15,7 +14,7 @@ import { FeedbackMessage } from '../components/FeedbackMessage';
 
 export function NovaSessaoScreen() {
   const navigate = useNavigate();
-  const { clientes: mockClientes, addSessao, addTransacao } = useDatabase();
+  const { clientes, valoresConsultas, addSessao, addTransacao } = useDatabase();
   const [clienteId, setClienteId] = useState('');
   const [data, setData] = useState(getLocalDateInputValue());
   const [hora, setHora] = useState('');
@@ -27,7 +26,7 @@ export function NovaSessaoScreen() {
 
   const valorConsulta = valoresConsultas.find(v => v.tipo === tipoConsulta);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const duracaoNumerica = Number(duracao);
     const valorCobrado = valorConsulta?.valor ?? 0;
@@ -47,8 +46,8 @@ export function NovaSessaoScreen() {
       return;
     }
 
-    const cliente = mockClientes.find((item) => item.id === clienteId);
-    const sessao = addSessao({
+    const cliente = clientes.find((item) => item.id === clienteId);
+    const sessao = await addSessao({
       clienteId,
       data,
       hora,
@@ -62,7 +61,7 @@ export function NovaSessaoScreen() {
     });
 
     if (cobrarAgora && valorConsulta && valorCobrado > 0) {
-      addTransacao({
+      await addTransacao({
         tipo: 'Receita',
         categoria: 'Consultas',
         tipoConsulta,
@@ -96,7 +95,7 @@ export function NovaSessaoScreen() {
           <div className="space-y-2">
             <label className="block text-sm font-medium text-foreground">Cliente</label>
             <ClienteSelect
-              clientes={mockClientes.filter((cliente) => cliente.statusCadastro !== 'Inativo')}
+              clientes={clientes.filter((cliente) => cliente.statusCadastro !== 'Inativo')}
               value={clienteId}
               onChange={setClienteId}
             />

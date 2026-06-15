@@ -72,14 +72,14 @@ const getMensalData = (transacoes: Transacao[], ano: number) => {
 type ChartType = 'consultas' | 'despesas' | 'mensal';
 
 export function ReportsScreen() {
-  const { transacoes: mockTransacoes, sessoes: mockSessoes } = useDatabase();
+  const { transacoes, sessoes } = useDatabase();
   const [chartType, setChartType] = useState<ChartType>('consultas');
   const [monthFilter, setMonthFilter] = useState(getLocalMonthInputValue());
   const { year: anoSelecionado } = parseMonthInput(monthFilter);
   const monthLabel = getMonthLabel(monthFilter);
   
   // Calcular totais do mês selecionado
-  const transacoesMes = mockTransacoes.filter(t => t.data.startsWith(monthFilter));
+  const transacoesMes = transacoes.filter(t => t.data.startsWith(monthFilter));
   
   const totalReceitas = transacoesMes
     .filter(t => t.tipo === 'Receita')
@@ -92,7 +92,7 @@ export function ReportsScreen() {
   const saldoLiquido = totalReceitas - totalDespesas;
 
   // Estatísticas de sessões
-  const sessoesMes = mockSessoes.filter(s => s.data.startsWith(monthFilter));
+  const sessoesMes = sessoes.filter(s => s.data.startsWith(monthFilter));
   const sessoesRealizadas = sessoesMes.filter(s => s.status === 'Realizada').length;
   const sessoesAgendadas = sessoesMes.filter(s => s.status === 'Agendada').length;
   const sessoesCanceladas = sessoesMes.filter(s => s.status === 'Cancelada').length;
@@ -119,7 +119,7 @@ export function ReportsScreen() {
 
   const consultasData = getConsultasData(transacoesMes);
   const despesasData = getCategoriaData(transacoesMes);
-  const mensalData = getMensalData(mockTransacoes, anoSelecionado);
+  const mensalData = getMensalData(transacoes, anoSelecionado);
 
   return (
     <div className="min-h-screen bg-background pb-20">

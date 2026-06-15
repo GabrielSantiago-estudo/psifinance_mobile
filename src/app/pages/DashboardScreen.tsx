@@ -14,38 +14,38 @@ export function DashboardScreen() {
   const [showBalance, setShowBalance] = useState(true);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const navigate = useNavigate();
-  const { transacoes: mockTransacoes, clientes: mockClientes, sessoes: mockSessoes } = useDatabase();
+  const { transacoes, clientes, sessoes } = useDatabase();
   const currentUser = getCurrentUser();
   
   // Calcular totais
-  const totalReceitas = mockTransacoes
+  const totalReceitas = transacoes
     .filter(t => t.tipo === 'Receita')
     .reduce((sum, t) => sum + t.valor, 0);
   
-  const totalDespesas = mockTransacoes
+  const totalDespesas = transacoes
     .filter(t => t.tipo === 'Despesa')
     .reduce((sum, t) => sum + t.valor, 0);
   
   const saldoTotal = totalReceitas - totalDespesas;
   const currentMonthKey = getLocalMonthInputValue();
-  const receitasDoMes = mockTransacoes
+  const receitasDoMes = transacoes
     .filter(t => t.tipo === 'Receita' && t.data.startsWith(currentMonthKey))
     .reduce((sum, t) => sum + t.valor, 0);
 
-  const despesasDoMes = mockTransacoes
+  const despesasDoMes = transacoes
     .filter(t => t.tipo === 'Despesa' && t.data.startsWith(currentMonthKey))
     .reduce((sum, t) => sum + t.valor, 0);
 
   // Estatísticas de clientes
-  const clientesAtivos = mockClientes.filter(c => c.statusCadastro === 'Ativo').length;
-  const clientesComPendencia = mockClientes.filter(c => c.statusPagamento === 'Pendente' || c.statusPagamento === 'Inadimplente').length;
+  const clientesAtivos = clientes.filter(c => c.statusCadastro === 'Ativo').length;
+  const clientesComPendencia = clientes.filter(c => c.statusPagamento === 'Pendente' || c.statusPagamento === 'Inadimplente').length;
   
   // Sessões do mês
-  const sessoesDoMes = mockSessoes.filter(s => s.data.startsWith(currentMonthKey));
+  const sessoesDoMes = sessoes.filter(s => s.data.startsWith(currentMonthKey));
   
   const sessoesRealizadas = sessoesDoMes.filter(s => s.status === 'Realizada').length;
-  const sessoesAgendadas = mockSessoes.filter(s => s.status === 'Agendada').length;
-  const pendenciasSessoes = mockSessoes.filter((sessao) =>
+  const sessoesAgendadas = sessoes.filter(s => s.status === 'Agendada').length;
+  const pendenciasSessoes = sessoes.filter((sessao) =>
     sessao.status === 'Realizada'
     && (sessao.statusPagamento ?? (sessao.valorCobrado === 0 ? 'Isento' : 'Pendente')) === 'Pendente'
   );
@@ -53,7 +53,7 @@ export function DashboardScreen() {
 
   // Próximas sessões
   const hoje = getLocalDateInputValue();
-  const proximasSessoes = mockSessoes
+  const proximasSessoes = sessoes
     .filter(s => s.status === 'Agendada' && s.data >= hoje)
     .sort((a, b) => a.data.localeCompare(b.data) || a.hora.localeCompare(b.hora))
     .slice(0, 3);

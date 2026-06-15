@@ -1,27 +1,27 @@
 import { useSyncExternalStore } from 'react';
-import { Cliente, Sessao, StatusPagamento, Transacao } from '../types';
-import { mockClientes, mockSessoes, mockTransacoes } from '../data/mockData';
+import { Cliente, Sessao, StatusPagamento, Transacao, ValorConsulta } from '../types';
 import { getLocalDateInputValue } from '../utils/dates';
 
-const STORAGE_KEY = 'psifinance_db_v3';
-const LEGACY_STORAGE_KEYS = ['psifinance_db_v2', 'psifinance_db_v1'];
-
 export interface DatabaseState {
+  valoresConsultas: ValorConsulta[];
   clientes: Cliente[];
   sessoes: Sessao[];
   transacoes: Transacao[];
 }
 
-const listeners = new Set<() => void>();
-
-const initialState: DatabaseState = {
-  clientes: mockClientes,
-  sessoes: mockSessoes,
-  transacoes: mockTransacoes,
+const emptyState: DatabaseState = {
+  valoresConsultas: [],
+  clientes: [],
+  sessoes: [],
+  transacoes: [],
 };
 
-function isBrowser() {
-  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+const listeners = new Set<() => void>();
+let state: DatabaseState = emptyState;
+let loadingPromise: Promise<void> | null = null;
+
+function emitChange() {
+  listeners.forEach((listener) => listener());
 }
 
 function normalizeStatusPagamento(status?: StatusPagamento): StatusPagamento {
@@ -56,9 +56,10 @@ function normalizeTransacoes(transacoes: Transacao[]) {
 }
 
 function normalizeState(input: Partial<DatabaseState>): DatabaseState {
-  const clientes = Array.isArray(input.clientes) ? input.clientes : initialState.clientes;
-  const transacoes = normalizeTransacoes(Array.isArray(input.transacoes) ? input.transacoes : initialState.transacoes);
-  const sessoes = Array.isArray(input.sessoes) ? input.sessoes : initialState.sessoes;
+  const valoresConsultas = Array.isArray(input.valoresConsultas) ? input.valoresConsultas : [];
+  const clientes = Array.isArray(input.clientes) ? input.clientes : [];
+  const transacoes = normalizeTransacoes(Array.isArray(input.transacoes) ? input.transacoes : []);
+  const sessoes = Array.isArray(input.sessoes) ? input.sessoes : [];
   const sessoesComFinanceiro = new Set(
     transacoes
       .filter((transacao) => transacao.origem === 'SessaoAutomatica')
@@ -67,6 +68,7 @@ function normalizeState(input: Partial<DatabaseState>): DatabaseState {
   );
 
   return {
+    valoresConsultas,
     clientes: clientes.map(normalizeCliente),
     sessoes: sessoes.map((sessao) => {
       const temReceitaVinculada = sessoesComFinanceiro.has(sessao.id);
@@ -83,53 +85,54 @@ function normalizeState(input: Partial<DatabaseState>): DatabaseState {
   };
 }
 
-function readState(): DatabaseState {
-  if (!isBrowser()) return normalizeState(initialState);
-
-  const saved = window.localStorage.getItem(STORAGE_KEY)
-    ?? LEGACY_STORAGE_KEYS.map((key) => window.localStorage.getItem(key)).find(Boolean);
-  if (!saved) {
-    const normalized = normalizeState(initialState);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
-    return normalized;
-  }
-
-  try {
-    const parsed = JSON.parse(saved) as Partial<DatabaseState>;
-    const normalized = normalizeState(parsed);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
-    return normalized;
-  } catch {
-    const normalized = normalizeState(initialState);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
-    return normalized;
-  }
+function setState(next: Partial<DatabaseState>) {
+  state = normalizeState(next);
+  emitChange();
 }
 
-function writeState(updater: (state: DatabaseState) => DatabaseState) {
-  const next = normalizeState(updater(readState()));
-  if (isBrowser()) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(path, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error ?? 'Erro ao acessar o banco de dados.');
   }
-  listeners.forEach((listener) => listener());
+
+  return response.json() as Promise<T>;
+}
+
+async function loadDatabase() {
+  if (loadingPromise) return loadingPromise;
+
+  loadingPromise = apiRequest<DatabaseState>('/api/database')
+    .then(setState)
+    .finally(() => {
+      loadingPromise = null;
+    });
+
+  return loadingPromise;
 }
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
+  void loadDatabase().catch((error) => {
+    console.error(error);
+  });
   return () => listeners.delete(listener);
 }
 
 function getSnapshot() {
-  return JSON.stringify(readState());
+  return JSON.stringify(state);
 }
 
-function createId(prefix: string) {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function createSessaoTransacao(sessao: Sessao): Transacao {
+function createSessaoTransacao(sessao: Sessao): Omit<Transacao, 'id'> {
   return {
-    id: createId('tra'),
     tipo: 'Receita',
     categoria: 'Consultas',
     tipoConsulta: sessao.tipoConsulta,
@@ -145,55 +148,60 @@ function createSessaoTransacao(sessao: Sessao): Transacao {
 
 export function useDatabase() {
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-  const state = JSON.parse(snapshot) as DatabaseState;
+  const currentState = JSON.parse(snapshot) as DatabaseState;
 
   return {
-    ...state,
+    ...currentState,
 
-    addCliente(input: Omit<Cliente, 'id' | 'dataCadastro'> & { dataCadastro?: string }) {
-      const cliente: Cliente = {
-        id: createId('cli'),
-        dataCadastro: input.dataCadastro ?? getLocalDateInputValue(),
-        ...input,
-        statusPagamento: normalizeStatusPagamento(input.statusPagamento),
-      };
+    async refreshDatabase() {
+      await loadDatabase();
+      return state;
+    },
 
-      writeState((current) => ({
-        ...current,
-        clientes: [cliente, ...current.clientes],
-      }));
+    async addCliente(input: Omit<Cliente, 'id' | 'dataCadastro'> & { dataCadastro?: string }) {
+      const cliente = await apiRequest<Cliente>('/api/clientes', {
+        method: 'POST',
+        body: JSON.stringify({
+          dataCadastro: input.dataCadastro ?? getLocalDateInputValue(),
+          ...input,
+          statusPagamento: normalizeStatusPagamento(input.statusPagamento),
+        }),
+      });
+
+      setState({
+        ...state,
+        clientes: [cliente, ...state.clientes],
+      });
 
       return cliente;
     },
 
-    addSessao(input: Omit<Sessao, 'id' | 'clienteNome'> & { clienteNome?: string }) {
-      const current = readState();
-      const cliente = current.clientes.find((item) => item.id === input.clienteId);
-      const sessao: Sessao = {
-        id: createId('ses'),
-        clienteNome: input.clienteNome ?? cliente?.nome ?? 'Cliente não informado',
-        statusPagamento: input.statusPagamento ?? (input.valorCobrado === 0 ? 'Isento' : 'Pendente'),
-        ...input,
-      };
+    async addSessao(input: Omit<Sessao, 'id' | 'clienteNome'> & { clienteNome?: string }) {
+      const sessao = await apiRequest<Sessao>('/api/sessoes', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      });
 
-      writeState((state) => ({
+      setState({
         ...state,
         sessoes: [sessao, ...state.sessoes],
-      }));
+      });
 
       return sessao;
     },
 
-    updateCliente(id: string, input: Partial<Omit<Cliente, 'id' | 'dataCadastro'>>) {
-      let updated: Cliente | undefined;
-
-      writeState((state) => ({
-        ...state,
-        clientes: state.clientes.map((cliente) => {
-          if (cliente.id !== id) return cliente;
-          updated = { ...cliente, ...input, statusPagamento: normalizeStatusPagamento(input.statusPagamento ?? cliente.statusPagamento) };
-          return updated;
+    async updateCliente(id: string, input: Partial<Omit<Cliente, 'id' | 'dataCadastro'>>) {
+      const updated = await apiRequest<Cliente>(`/api/clientes/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          ...input,
+          statusPagamento: input.statusPagamento ? normalizeStatusPagamento(input.statusPagamento) : undefined,
         }),
+      });
+
+      setState({
+        ...state,
+        clientes: state.clientes.map((cliente) => (cliente.id === id ? updated : cliente)),
         sessoes: input.nome
           ? state.sessoes.map((sessao) =>
               sessao.clienteId === id ? { ...sessao, clienteNome: input.nome as string } : sessao
@@ -204,123 +212,44 @@ export function useDatabase() {
               transacao.clienteId === id ? { ...transacao, clienteNome: input.nome as string } : transacao
             )
           : state.transacoes,
-      }));
-
-      return updated;
-    },
-
-    updateSessao(id: string, input: Partial<Omit<Sessao, 'id' | 'clienteNome'>> & { clienteNome?: string }) {
-      let updated: (Sessao & { financeiroMensagem?: string }) | undefined;
-      const current = readState();
-      const cliente = input.clienteId
-        ? current.clientes.find((item) => item.id === input.clienteId)
-        : undefined;
-
-      writeState((state) => {
-        let generatedTransacao: Transacao | undefined;
-        let shouldSyncLinkedTransacao = false;
-        let shouldRemoveLinkedTransacao = false;
-        const hasLinkedTransacao = state.transacoes.some((transacao) => transacao.sessaoId === id);
-
-        const sessoes = state.sessoes.map((sessao) => {
-          if (sessao.id !== id) return sessao;
-
-          updated = {
-            ...sessao,
-            ...input,
-            clienteNome: input.clienteNome ?? cliente?.nome ?? sessao.clienteNome,
-            statusPagamento: normalizeStatusPagamento(input.statusPagamento ?? sessao.statusPagamento),
-          };
-
-          const shouldHaveRevenue = updated.status === 'Realizada' && (updated.valorCobrado ?? 0) > 0;
-
-          if (shouldHaveRevenue) {
-            updated = {
-              ...updated,
-              financeiroGerado: true,
-            };
-
-            if (hasLinkedTransacao) {
-              shouldSyncLinkedTransacao = true;
-              updated.financeiroMensagem = 'Receita atualizada.';
-            } else {
-              generatedTransacao = createSessaoTransacao(updated);
-              updated.financeiroMensagem = 'Receita gerada automaticamente.';
-            }
-          } else {
-            updated = {
-              ...updated,
-              financeiroGerado: false,
-              statusPagamento: (updated.valorCobrado ?? 0) === 0 ? 'Isento' : updated.statusPagamento,
-            };
-
-            if (hasLinkedTransacao) {
-              shouldRemoveLinkedTransacao = true;
-              updated.financeiroMensagem = 'Receita removida porque a sessão deixou de ser realizada.';
-            }
-          }
-
-          return updated;
-        });
-
-        let transacoes = state.transacoes;
-
-        if (shouldRemoveLinkedTransacao) {
-          transacoes = transacoes.filter((transacao) => transacao.sessaoId !== id);
-        }
-
-        if (shouldSyncLinkedTransacao && updated) {
-          transacoes = transacoes.map((transacao) =>
-            transacao.sessaoId === id
-              ? {
-                  ...transacao,
-                  ...createSessaoTransacao(updated!),
-                  id: transacao.id,
-                }
-              : transacao
-          );
-        }
-
-        if (generatedTransacao) {
-          transacoes = [generatedTransacao, ...transacoes];
-        }
-
-        return {
-          ...state,
-          sessoes,
-          transacoes,
-        };
       });
 
       return updated;
     },
 
-    addTransacao(input: Omit<Transacao, 'id'>) {
-      const current = readState();
-      const cliente = input.clienteId
-        ? current.clientes.find((item) => item.id === input.clienteId)
-        : undefined;
+    async updateSessao(id: string, input: Partial<Omit<Sessao, 'id' | 'clienteNome'>> & { clienteNome?: string }) {
+      const updated = await apiRequest<Sessao & { financeiroMensagem?: string }>(`/api/sessoes/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          ...input,
+          statusPagamento: input.statusPagamento ? normalizeStatusPagamento(input.statusPagamento) : undefined,
+        }),
+      });
 
-      const transacao: Transacao = {
-        id: createId('tra'),
-        origem: input.origem ?? 'Manual',
-        ...input,
-        clienteNome: input.clienteNome ?? cliente?.nome,
-      };
+      await loadDatabase();
+      return updated;
+    },
 
-      writeState((state) => ({
+    async addTransacao(input: Omit<Transacao, 'id'>) {
+      const transacao = await apiRequest<Transacao>('/api/transacoes', {
+        method: 'POST',
+        body: JSON.stringify({
+          origem: input.origem ?? 'Manual',
+          ...input,
+        }),
+      });
+
+      setState({
         ...state,
         transacoes: [transacao, ...state.transacoes],
-      }));
+      });
 
       return transacao;
     },
 
-    resetDatabase() {
-      if (isBrowser()) {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeState(initialState)));
-      }
-      listeners.forEach((listener) => listener());
+    async resetDatabase() {
+      await loadDatabase();
+      return state;
     },
   };
 }

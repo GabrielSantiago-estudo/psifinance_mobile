@@ -7,7 +7,6 @@ import { useDatabase } from '../services/database';
 import { Sessao, StatusPagamento, StatusSessao, TipoConsulta } from '../types';
 import { useNavigate } from 'react-router';
 import { Badge } from '../components/ui/badge';
-import { valoresConsultas } from '../data/mockData';
 import { ClienteSelect } from '../components/ClienteSelect';
 import { formatDatePtBr, getLocalDateInputValue } from '../utils/dates';
 import { FeedbackMessage } from '../components/FeedbackMessage';
@@ -16,7 +15,7 @@ import { validateSessaoInput } from '../validators/forms';
 type FilterType = 'all' | StatusSessao;
 
 function SessaoEditModal({ sessao, onClose }: { sessao: Sessao; onClose: () => void }) {
-  const { updateSessao, clientes } = useDatabase();
+  const { updateSessao, clientes, valoresConsultas } = useDatabase();
   const [clienteId, setClienteId] = useState(sessao.clienteId);
   const [data, setData] = useState(sessao.data);
   const [hora, setHora] = useState(sessao.hora);
@@ -37,7 +36,7 @@ function SessaoEditModal({ sessao, onClose }: { sessao: Sessao; onClose: () => v
     }
   }
 
-  function save() {
+  async function save() {
     const valor = Number(valorCobrado || 0);
     const duracaoNumero = Number(duracao);
     const validation = validateSessaoInput({
@@ -57,7 +56,7 @@ function SessaoEditModal({ sessao, onClose }: { sessao: Sessao; onClose: () => v
     }
 
     const cliente = clientes.find((item) => item.id === clienteId);
-    const updated = updateSessao(sessao.id, {
+    const updated = await updateSessao(sessao.id, {
       clienteId,
       clienteNome: cliente?.nome,
       data,
@@ -146,16 +145,16 @@ export function SessoesScreen() {
   const [dateFilter, setDateFilter] = useState('');
   const [editing, setEditing] = useState<Sessao | null>(null);
   const navigate = useNavigate();
-  const { sessoes: mockSessoes } = useDatabase();
+  const { sessoes } = useDatabase();
 
   const filteredSessoes = useMemo(() => {
-    return mockSessoes.filter((sessao) => {
+    return sessoes.filter((sessao) => {
       const matchesFilter = filter === 'all' || sessao.status === filter;
       const matchesSearch = `${sessao.clienteNome} ${sessao.tipoConsulta}`.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesDate = !dateFilter || sessao.data === dateFilter;
       return matchesFilter && matchesSearch && matchesDate;
     });
-  }, [mockSessoes, filter, searchTerm, dateFilter]);
+  }, [sessoes, filter, searchTerm, dateFilter]);
 
   const filterButtons: { label: string; value: FilterType }[] = [
     { label: 'Todas', value: 'all' },
@@ -222,10 +221,10 @@ export function SessoesScreen() {
         </div>
 
         <div className="grid grid-cols-4 gap-2">
-          <div className="bg-card rounded-2xl p-3 border border-border"><p className="text-xl font-bold text-foreground">{mockSessoes.length}</p><p className="text-xs text-muted-foreground">Total</p></div>
-          <div className="bg-card rounded-2xl p-3 border border-border"><p className="text-xl font-bold text-secondary">{mockSessoes.filter(s => s.status === 'Agendada').length}</p><p className="text-xs text-muted-foreground">Agend.</p></div>
-          <div className="bg-card rounded-2xl p-3 border border-border"><p className="text-xl font-bold text-success">{mockSessoes.filter(s => s.status === 'Realizada').length}</p><p className="text-xs text-muted-foreground">Realiz.</p></div>
-          <div className="bg-card rounded-2xl p-3 border border-border"><p className="text-xl font-bold text-destructive">{mockSessoes.filter(s => s.status === 'Cancelada' || s.status === 'Faltou').length}</p><p className="text-xs text-muted-foreground">Aus./Canc.</p></div>
+          <div className="bg-card rounded-2xl p-3 border border-border"><p className="text-xl font-bold text-foreground">{sessoes.length}</p><p className="text-xs text-muted-foreground">Total</p></div>
+          <div className="bg-card rounded-2xl p-3 border border-border"><p className="text-xl font-bold text-secondary">{sessoes.filter(s => s.status === 'Agendada').length}</p><p className="text-xs text-muted-foreground">Agend.</p></div>
+          <div className="bg-card rounded-2xl p-3 border border-border"><p className="text-xl font-bold text-success">{sessoes.filter(s => s.status === 'Realizada').length}</p><p className="text-xs text-muted-foreground">Realiz.</p></div>
+          <div className="bg-card rounded-2xl p-3 border border-border"><p className="text-xl font-bold text-destructive">{sessoes.filter(s => s.status === 'Cancelada' || s.status === 'Faltou').length}</p><p className="text-xs text-muted-foreground">Aus./Canc.</p></div>
         </div>
 
         <div className="space-y-6">

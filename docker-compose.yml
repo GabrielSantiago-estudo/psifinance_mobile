@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: psifinance-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: psifinance
+      POSTGRES_USER: psifinance
+      POSTGRES_PASSWORD: psifinance
+    ports:
+      - "5432:5432"
+    volumes:
+      - psifinance-postgres-data:/var/lib/postgresql/data
+      - ./database/psifinance.sql:/docker-entrypoint-initdb.d/001_psifinance.sql:ro
+
+volumes:
+  psifinance-postgres-data:

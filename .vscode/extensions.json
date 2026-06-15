@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "mtxr.sqltools",
+    "mtxr.sqltools-driver-pg",
+    "cweijan.vscode-database-client2",
+    "ms-azuretools.vscode-docker"
+  ]
+}

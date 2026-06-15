@@ -5,7 +5,6 @@ import { FinButton } from '../components/FinButton';
 import { FinInput } from '../components/FinInput';
 import { DollarSign, Calendar, User, FileText } from 'lucide-react';
 import { cn } from '../components/ui/utils';
-import { valoresConsultas } from '../data/mockData';
 import { useDatabase } from '../services/database';
 import { TipoConsulta } from '../types';
 import { getLocalDateInputValue } from '../utils/dates';
@@ -17,7 +16,7 @@ const categoriasDespesa = ['Infraestrutura', 'Operacional', 'Marketing', 'Impost
 
 export function AddTransactionScreen() {
   const navigate = useNavigate();
-  const { clientes: mockClientes, addTransacao } = useDatabase();
+  const { clientes, valoresConsultas, addTransacao } = useDatabase();
   const [tipo, setTipo] = useState<'Receita' | 'Despesa'>('Receita');
   const [valor, setValor] = useState('');
   const [categoria, setCategoria] = useState('');
@@ -29,7 +28,7 @@ export function AddTransactionScreen() {
   const [frequencia, setFrequencia] = useState<'Mensal' | 'Trimestral' | 'Anual'>('Mensal');
   const [errors, setErrors] = useState<string[]>([]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const valorNumerico = Number(valor);
     const validationErrors = validateTransacaoInput({
@@ -53,8 +52,8 @@ export function AddTransactionScreen() {
       return;
     }
 
-    const cliente = mockClientes.find((item) => item.id === clienteId);
-    addTransacao({
+    const cliente = clientes.find((item) => item.id === clienteId);
+    await addTransacao({
       tipo,
       categoria,
       tipoConsulta: tipoConsulta || undefined,
@@ -209,7 +208,7 @@ export function AddTransactionScreen() {
                     required={mostrarTipoConsulta}
                   >
                     <option value="">Selecione um cliente</option>
-                    {mockClientes
+                    {clientes
                       .filter(c => c.statusCadastro === 'Ativo')
                       .map((cliente) => (
                         <option key={cliente.id} value={cliente.id}>

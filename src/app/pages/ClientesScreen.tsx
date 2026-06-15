@@ -19,10 +19,10 @@ export function ClientesScreen() {
   const [orderBy, setOrderBy] = useState<OrderType>('nome');
   const [editing, setEditing] = useState<Cliente | null>(null);
   const navigate = useNavigate();
-  const { clientes: mockClientes, sessoes } = useDatabase();
+  const { clientes, sessoes } = useDatabase();
 
   const filteredClientes = useMemo(() => {
-    return mockClientes
+    return clientes
       .filter((cliente) => {
         const matchesFilter = filter === 'all' || cliente.statusCadastro === filter;
         const matchesSearch = `${cliente.nome} ${cliente.email} ${cliente.telefone}`.toLowerCase().includes(searchTerm.toLowerCase());
@@ -31,7 +31,7 @@ export function ClientesScreen() {
       .sort((a, b) => orderBy === 'nome'
         ? a.nome.localeCompare(b.nome)
         : new Date(`${b.dataCadastro}T00:00:00`).getTime() - new Date(`${a.dataCadastro}T00:00:00`).getTime());
-  }, [mockClientes, filter, searchTerm, orderBy]);
+  }, [clientes, filter, searchTerm, orderBy]);
 
   const filterButtons: { label: string; value: FilterType }[] = [
     { label: 'Todos', value: 'all' },
@@ -75,9 +75,9 @@ export function ClientesScreen() {
         </select>
 
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-card rounded-2xl p-4 border border-border"><p className="text-2xl font-bold text-foreground">{mockClientes.length}</p><p className="text-xs text-muted-foreground">Total</p></div>
-          <div className="bg-card rounded-2xl p-4 border border-border"><p className="text-2xl font-bold text-success">{mockClientes.filter(c => c.statusCadastro === 'Ativo').length}</p><p className="text-xs text-muted-foreground">Ativos</p></div>
-          <div className="bg-card rounded-2xl p-4 border border-border"><p className="text-2xl font-bold text-muted-foreground">{mockClientes.filter(c => c.statusCadastro === 'Inativo').length}</p><p className="text-xs text-muted-foreground">Inativos</p></div>
+          <div className="bg-card rounded-2xl p-4 border border-border"><p className="text-2xl font-bold text-foreground">{clientes.length}</p><p className="text-xs text-muted-foreground">Total</p></div>
+          <div className="bg-card rounded-2xl p-4 border border-border"><p className="text-2xl font-bold text-success">{clientes.filter(c => c.statusCadastro === 'Ativo').length}</p><p className="text-xs text-muted-foreground">Ativos</p></div>
+          <div className="bg-card rounded-2xl p-4 border border-border"><p className="text-2xl font-bold text-muted-foreground">{clientes.filter(c => c.statusCadastro === 'Inativo').length}</p><p className="text-xs text-muted-foreground">Inativos</p></div>
         </div>
 
         <div className="space-y-3">

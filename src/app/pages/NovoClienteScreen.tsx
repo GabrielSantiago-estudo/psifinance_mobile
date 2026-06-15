@@ -18,7 +18,7 @@ export function NovoClienteScreen() {
   const [observacoes, setObservacoes] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const validationErrors = validateClienteInput({ nome, email, telefone, clientes });
 
@@ -27,7 +27,7 @@ export function NovoClienteScreen() {
       return;
     }
 
-    addCliente({
+    await addCliente({
       nome: nome.trim(),
       email: email.trim(),
       telefone,

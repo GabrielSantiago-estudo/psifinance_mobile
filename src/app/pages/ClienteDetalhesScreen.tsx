@@ -11,11 +11,11 @@ import { formatDatePtBr } from '../utils/dates';
 export function ClienteDetalhesScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { clientes: mockClientes, sessoes: mockSessoes } = useDatabase();
+  const { clientes, sessoes } = useDatabase();
   const [editing, setEditing] = useState(false);
 
-  const cliente = mockClientes.find(c => c.id === id);
-  const sessoesCliente = mockSessoes.filter(s => s.clienteId === id);
+  const cliente = clientes.find(c => c.id === id);
+  const sessoesCliente = sessoes.filter(s => s.clienteId === id);
 
   if (!cliente) {
     return (

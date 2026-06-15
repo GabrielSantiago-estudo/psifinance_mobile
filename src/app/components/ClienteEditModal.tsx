@@ -29,7 +29,7 @@ export function ClienteEditModal({ cliente, onClose }: ClienteEditModalProps) {
   const [errors, setErrors] = useState<string[]>([]);
   const [message, setMessage] = useState('');
 
-  function save() {
+  async function save() {
     const validationErrors = validateClienteInput({
       nome,
       email,
@@ -44,7 +44,7 @@ export function ClienteEditModal({ cliente, onClose }: ClienteEditModalProps) {
       return;
     }
 
-    updateCliente(cliente.id, {
+    await updateCliente(cliente.id, {
       nome: nome.trim(),
       email: email.trim(),
       telefone,
